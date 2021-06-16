@@ -131,9 +131,11 @@ curl -H "Host: covidify.testing.d2iq.com" -X POST "http://<yourclusteraddress>/v
 ### percona operator
 Percona operator needs to be deployed in cluster wide mode. Use this Helm chart fork https://github.com/fatz/percona-helm-charts/tree/feature/cluster-wide as long as https://github.com/percona/percona-helm-charts/pull/70 is not merged
 
-Helm
+#### Use Helm to install the pxx operator
+
+
 ```
-helm install --namespace pxc-operator pxc . --set watchAllNamespaces=true
+helm install --create-namespace --namespace pxc-operator pxc . --set watchAllNamespaces=true
 ```
 
 
