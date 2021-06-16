@@ -140,6 +140,15 @@ helm install --create-namespace --namespace pxc-operator pxc . --set watchAllNam
 
 
 ### setup xtradb cluster
+
+#### Install pwgen
+
+Mac `brew install pwgen`
+
+*or*
+
+Linux `apt-get install -y pwgen`
+
 ```
 kubectl -n covidify create secret generic covidify-db --from-literal=root=$(pwgen 25 -1)  --from-literal=xtrabackup=$(pwgen 25 -1)  --from-literal=monitor=$(pwgen 25 -1)  --from-literal=clustercheck=$(pwgen 25 -1)  --from-literal=proxyadmin=$(pwgen 25 -1)  --from-literal=pmmserver=$(k -n kubeaddons get pod -l component=pmm -o json | jq -r ".items[0].spec.containers[0].env[] | select(.name==\"ADMIN_PASSWORD\").value")  --from-literal=operator=$(pwgen 25 -1)
 ```
