@@ -126,7 +126,7 @@ dcos cassandra --name "testing/covidify/cassandra" endpoints native-client | jq 
 curl -H "Host: covidify.testing.d2iq.com" -X POST "http://<yourclusteraddress>/visit" -H  "accept: */*" -H  "Content-Type: application/json" -d "{\"id\":\"d290f1ee-6c54-4b01-90e6-d701748f0851\",\"table_number\":\"outside-1\",\"visitors\":[{\"name\":\"John Doe\",\"email\":\"john.doe@googlemail.com\",\"phone\":\"+49-30-123456789\",\"country\":\"DEU\",\"city\":\"Berlin\",\"zip_code\":\"11011\",\"street\":\"Platz der Republik 1\"}]}"
 
 
-### kubernetes
+## kubernetes
 
 ### percona operator
 Percona operator needs to be deployed in cluster wide mode. Use this Helm chart fork https://github.com/fatz/percona-helm-charts/tree/feature/cluster-wide as long as https://github.com/percona/percona-helm-charts/pull/70 is not merged
@@ -137,27 +137,39 @@ helm install --namespace pxc-operator pxc . --set watchAllNamespaces=true
 ```
 
 
-# setup xtradb cluster
+### setup xtradb cluster
 ```
 kubectl -n covidify create secret generic covidify-db --from-literal=root=$(pwgen 25 -1)  --from-literal=xtrabackup=$(pwgen 25 -1)  --from-literal=monitor=$(pwgen 25 -1)  --from-literal=clustercheck=$(pwgen 25 -1)  --from-literal=proxyadmin=$(pwgen 25 -1)  --from-literal=pmmserver=$(k -n kubeaddons get pod -l component=pmm -o json | jq -r ".items[0].spec.containers[0].env[] | select(.name==\"ADMIN_PASSWORD\").value")  --from-literal=operator=$(pwgen 25 -1)
-
-kubectl -n covidify apply -f deployments/dkp/mysql.yml
-
-kubectl -n covidify run -ti --rm percona-client --image=percona:5.7 --restart=Never --env="POD_NAMESPACE=covidify" -- mysql -h covidify-haproxy -u root --password=$(kubectl -n covidify get secret covidify-db -o jsonpath="{.data.root}" | base64 -d) -e "CREATE DATABASE covidify;"
-
-kubectl -n covidify create secret generic covidify-db-user --from-literal=COVIDIFY_USERNAME=covidify --from-literal=COVIDIFY_PASSWORD="$(pwgen 25 -1)"
-
-kubectl -n covidify run -ti --rm percona-client --image=percona:5.7 --restart=Never --env="POD_NAMESPACE=covidify" -- mysql -h covidify-haproxy -u root --password=$(kubectl -n covidify get secret covidify-db -o jsonpath="{.data.root}" | base64 -d) -e "CREATE USER 'covidify'@'%' IDENTIFIED BY '$(kubectl -n covidify get secret covidify-db-user -o jsonpath="{.data.COVIDIFY_PASSWORD}" | base64 -d)';GRANT ALL PRIVILEGES ON covidify.* TO 'covidify'@'%';"
-
-
-cat covidify.sql | kubectl -n covidify run -ti --rm percona-client --image=percona:5.7 --restart=Never --env="POD_NAMESPACE=covidify" -- mysql -h covidify-haproxy -u root --password=$(kubectl -n covidify get secret covidify-db -o jsonpath="{.data.root}" | base64 -d) covidify
 ```
 
-# deploy mysql user password
+```
+kubectl -n covidify apply -f deployments/dkp/mysql.yml
+```
+
+```
+kubectl -n covidify run -ti --rm percona-client --image=percona:5.7 --restart=Never --env="POD_NAMESPACE=covidify" -- mysql -h covidify-haproxy -u root --password=$(kubectl -n covidify get secret covidify-db -o jsonpath="{.data.root}" | base64 -d) -e "CREATE DATABASE covidify;"
+```
+
+
+```
+kubectl -n covidify create secret generic covidify-db-user --from-literal=COVIDIFY_USERNAME=covidify --from-literal=COVIDIFY_PASSWORD="$(pwgen 25 -1)"
+```
+
+```
+kubectl -n covidify run -ti --rm percona-client --image=percona:5.7 --restart=Never --env="POD_NAMESPACE=covidify" -- mysql -h covidify-haproxy -u root --password=$(kubectl -n covidify get secret covidify-db -o jsonpath="{.data.root}" | base64 -d) -e "CREATE USER 'covidify'@'%' IDENTIFIED BY '$(kubectl -n covidify get secret covidify-db-user -o jsonpath="{.data.COVIDIFY_PASSWORD}" | base64 -d)';GRANT ALL PRIVILEGES ON covidify.* TO 'covidify'@'%';"
+```
+
+```
+cat covidify.sql | kubectl -n covidify run -ti --rm percona-client --image=percona:5.7 --restart=Never --env="POD_NAMESPACE=covidify" -- mysql -h covidify-haproxy -u root --password=$(kubectl -n covidify get secret covidify-db -o jsonpath="{.data.root}" | base64 -d) covidify
+
+```
+
+### deploy mysql user password
 ```
 COVIDIFY_PASSWORD=$(pwgen 25 -1)
 kubectl -n covidify create secret generic covidify-db-user --from-literal=COVIDIFY_USERNAME=covidify --from-literal=COVIDIFY_PASSWORD="$(pwgen 25 -1)"
+```
 
+```
 CREATE USER 'covidify'@'%' IDENTIFIED BY '${COVIDIFY_PASSWORD}';GRANT ALL PRIVILEGES ON covidify.* TO 'covidify'@'%';
-
 ```
